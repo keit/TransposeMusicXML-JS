@@ -10,7 +10,7 @@
     "start": "node cli.js"
   },
   "dependencies": {
-    "xml2js": "^0.6.2",
+    "sax": "^1.3.0",
     "commander": "^11.0.0"
   },
   "keywords": ["musicxml", "transpose", "music", "cli"],

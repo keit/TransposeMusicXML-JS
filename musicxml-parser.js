@@ -3,8 +3,14 @@ const fs = require('fs');
 
 class MusicXMLParser {
   constructor() {
-    this.parser = new xml2js.Parser();
-    this.builder = new xml2js.Builder();
+    this.parser = new xml2js.Parser({
+      explicitArray: false,
+      mergeAttrs: true
+    });
+    this.builder = new xml2js.Builder({
+      explicitArray: false,
+      mergeAttrs: true
+    });
   }
 
   async parseFile(filePath) {

@@ -3,7 +3,7 @@
 const { Command } = require('commander');
 const path = require('path');
 const fs = require('fs');
-const MusicXMLParser = require('./musicxml-parser');
+const SAXMusicXMLParser = require('./sax-musicxml-parser');
 const MusicTransposer = require('./transposer');
 
 const program = new Command();
@@ -22,19 +22,16 @@ program
         process.exit(1);
       }
 
-      const parser = new MusicXMLParser();
+      const parser = new SAXMusicXMLParser();
       const transposer = new MusicTransposer();
+      parser.setTransposer(transposer);
 
       console.log(`Parsing MusicXML file: ${file}`);
-      const musicXML = await parser.parseFile(file);
-
       console.log(`Transposing by ${interval} semitones...`);
-      const transposedXML = transposer.transposeMusicXML(musicXML, interval);
-
-      const outputFile = options.output || generateOutputFilename(file);
-      const xmlContent = parser.buildXML(transposedXML);
       
-      parser.saveFile(outputFile, xmlContent);
+      const outputFile = options.output || generateOutputFilename(file);
+      await parser.transposeFile(file, interval, outputFile);
+      
       console.log(`Transposed MusicXML saved to: ${outputFile}`);
 
     } catch (error) {
