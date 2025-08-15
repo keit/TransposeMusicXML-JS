@@ -174,21 +174,27 @@ class SAXMusicXMLParser {
                 transposedValue = transposed.step;
                 harmonyData._transposedRoot = transposed;
                 harmonyData._needsRootAlter = transposed.alter !== undefined;
-              } else if (currentElement === 'root-alter' && harmonyData._transposedRoot) {
+                harmonyData._hasOriginalRootAlter = false; // Will be set to true if we see root-alter
+              } else if (currentElement === 'root-alter') {
                 const step = harmonyData['root-step'] || 'C';
                 const transposed = this.transposer.transposeNote(step, parseInt(originalValue), 4, this.transposer.parseInterval(interval));
-                transposedValue = transposed.alter !== undefined ? transposed.alter.toString() : '';
+                transposedValue = transposed.alter !== undefined ? transposed.alter.toString() : originalValue;
                 harmonyData._transposedRoot = transposed;
+                harmonyData._hasOriginalRootAlter = true; // Mark that original had root-alter
+                harmonyData._needsRootAlter = false; // Don't add another
               } else if (currentElement === 'bass-step') {
                 const transposed = this.transposer.transposeNote(originalValue, 0, 4, this.transposer.parseInterval(interval));
                 transposedValue = transposed.step;
                 harmonyData._transposedBass = transposed;
                 harmonyData._needsBassAlter = transposed.alter !== undefined;
-              } else if (currentElement === 'bass-alter' && harmonyData._transposedBass) {
+                harmonyData._hasOriginalBassAlter = false; // Will be set to true if we see bass-alter
+              } else if (currentElement === 'bass-alter') {
                 const step = harmonyData['bass-step'] || 'C';
                 const transposed = this.transposer.transposeNote(step, parseInt(originalValue), 4, this.transposer.parseInterval(interval));
-                transposedValue = transposed.alter !== undefined ? transposed.alter.toString() : '';
+                transposedValue = transposed.alter !== undefined ? transposed.alter.toString() : originalValue;
                 harmonyData._transposedBass = transposed;
+                harmonyData._hasOriginalBassAlter = true; // Mark that original had bass-alter
+                harmonyData._needsBassAlter = false; // Don't add another
               }
             } else if (insideKey && currentElement === 'fifths') {
               const currentFifths = parseInt(originalValue);
@@ -209,12 +215,22 @@ class SAXMusicXMLParser {
             if (tagName !== 'pitch') {
               output += '</' + tagName + '>';
               
-              // Add missing alter elements when needed
-              if (insideHarmony && tagName === 'root-step' && harmonyData._needsRootAlter && harmonyData._transposedRoot.alter !== undefined) {
-                output += `<root-alter>${harmonyData._transposedRoot.alter}</root-alter>`;
-              } else if (insideHarmony && tagName === 'bass-step' && harmonyData._needsBassAlter && harmonyData._transposedBass.alter !== undefined) {
-                output += `<bass-alter>${harmonyData._transposedBass.alter}</bass-alter>`;
-              }
+              // Don't add alter elements immediately - wait until we know if original has them
+            }
+          }
+          
+          // Add missing alter elements when root or bass elements close
+          if (insideHarmony && tagName === 'root' && harmonyData._needsRootAlter && !harmonyData._hasOriginalRootAlter && harmonyData._transposedRoot && harmonyData._transposedRoot.alter !== undefined) {
+            // Insert root-alter before closing root
+            const pos = output.lastIndexOf('</root>');
+            if (pos !== -1) {
+              output = output.substring(0, pos) + `<root-alter>${harmonyData._transposedRoot.alter}</root-alter>` + output.substring(pos);
+            }
+          } else if (insideHarmony && tagName === 'bass' && harmonyData._needsBassAlter && !harmonyData._hasOriginalBassAlter && harmonyData._transposedBass && harmonyData._transposedBass.alter !== undefined) {
+            // Insert bass-alter before closing bass
+            const pos = output.lastIndexOf('</bass>');
+            if (pos !== -1) {
+              output = output.substring(0, pos) + `<bass-alter>${harmonyData._transposedBass.alter}</bass-alter>` + output.substring(pos);
             }
           }
           
