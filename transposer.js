@@ -96,12 +96,28 @@ class MusicTransposer {
     
     const currentFifths = Array.isArray(keyElement.fifths) ? parseInt(keyElement.fifths[0]) : parseInt(keyElement.fifths);
     
-    // Simple approach: each semitone up moves 7 positions in circle of fifths
-    // But we need to map this correctly to the actual key signatures
-    // F(-1) + 2 semitones = G(+1), so +2 semitones = +2 in fifths
-    let newFifths = currentFifths + semitones;
+    // Create mapping from semitone transposition to fifths changes
+    // Using the circle of fifths: C(0) G(1) D(2) A(3) E(4) B(5) F#(6) C#(7) / F(-1) Bb(-2) Eb(-3) Ab(-4) Db(-5) Gb(-6) Cb(-7)
+    const semitonesToFifthsMap = [
+      0,   // 0 semitones: C → C (0)
+      7,   // 1 semitone:  C → Db (-5), but prefer C → C# (7) - will normalize later
+      2,   // 2 semitones: C → D (2)
+      -3,  // 3 semitones: C → Eb (-3)
+      4,   // 4 semitones: C → E (4)
+      -1,  // 5 semitones: C → F (-1)
+      6,   // 6 semitones: C → F# (6) or Gb (-6) - prefer F# (6)
+      1,   // 7 semitones: C → G (1)
+      -4,  // 8 semitones: C → Ab (-4)
+      3,   // 9 semitones: C → A (3)
+      -2,  // 10 semitones: C → Bb (-2)
+      5    // 11 semitones: C → B (5)
+    ];
     
-    // Wrap around the circle of fifths (valid range is -7 to +7)
+    const normalizedSemitones = ((semitones % 12) + 12) % 12;
+    const fifthsChange = semitonesToFifthsMap[normalizedSemitones];
+    let newFifths = currentFifths + fifthsChange;
+    
+    // Normalize to range -7 to +7
     while (newFifths > 7) newFifths -= 12;
     while (newFifths < -7) newFifths += 12;
     
