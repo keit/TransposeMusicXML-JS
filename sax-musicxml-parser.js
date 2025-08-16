@@ -24,6 +24,7 @@ class SAXMusicXMLParser {
         let insideHarmony = false;
         let insideKey = false;
         let insidePitch = false;
+        let insideAccidental = false;
         
         // Current musical element data
         let noteData = {};
@@ -31,6 +32,7 @@ class SAXMusicXMLParser {
         let keyData = {};
         let pitchBuffer = '';
         let pitchElements = [];
+        let accidentalValue = null;
         
         // Extract and preserve XML declaration and DOCTYPE
         const xmlDeclarationMatch = xmlData.match(/^<\?xml[^>]*\?>\s*/);
@@ -60,10 +62,13 @@ class SAXMusicXMLParser {
           if (node.name === 'note') {
             insideNote = true;
             noteData = {};
+            accidentalValue = null;
           } else if (node.name === 'pitch') {
             insidePitch = true;
             pitchBuffer = '';
             pitchElements = [];
+          } else if (node.name === 'accidental') {
+            insideAccidental = true;
           } else if (node.name === 'harmony') {
             insideHarmony = true;
             harmonyData = {};
@@ -143,6 +148,9 @@ class SAXMusicXMLParser {
                 
                 const transposed = this.transposer.transposeNote(step, alter, octave, this.transposer.parseInterval(interval));
                 
+                // Store transposed alter for accidental handling
+                noteData.transposedAlter = transposed.alter !== undefined ? parseInt(transposed.alter) : 0;
+                
                 // Build transposed pitch element
                 let transposedPitch = '<pitch>';
                 transposedPitch += `<step>${transposed.step}</step>`;
@@ -161,6 +169,27 @@ class SAXMusicXMLParser {
               pitchBuffer = '';
               pitchElements = [];
             }
+          } else if (insideAccidental && tagName === 'accidental' && textContent.trim()) {
+            // Handle accidental transposition based on transposed alter value
+            const originalAccidental = textContent.trim();
+            let transposedAccidental = originalAccidental;
+            
+            if (noteData.transposedAlter !== undefined) {
+              // Map alter values to accidental names
+              if (noteData.transposedAlter === 1) {
+                transposedAccidental = 'sharp';
+              } else if (noteData.transposedAlter === -1) {
+                transposedAccidental = 'flat';
+              } else if (noteData.transposedAlter === 0) {
+                transposedAccidental = 'natural';
+              } else if (noteData.transposedAlter === 2) {
+                transposedAccidental = 'double-sharp';
+              } else if (noteData.transposedAlter === -2) {
+                transposedAccidental = 'double-flat';
+              }
+            }
+            
+            output += transposedAccidental;
           } else if (currentElement && textContent.trim()) {
             // Handle non-pitch transposition
             const originalValue = textContent.trim();
@@ -262,6 +291,9 @@ class SAXMusicXMLParser {
           if (tagName === 'note') {
             insideNote = false;
             noteData = {};
+            accidentalValue = null;
+          } else if (tagName === 'accidental') {
+            insideAccidental = false;
           } else if (tagName === 'harmony') {
             insideHarmony = false;
             harmonyData = {};
@@ -470,6 +502,7 @@ class SAXMusicXMLParser {
       let insideHarmony = false;
       let insideKey = false;
       let insidePitch = false;
+      let insideAccidental = false;
       
       // Current musical element data
       let noteData = {};
@@ -477,6 +510,7 @@ class SAXMusicXMLParser {
       let keyData = {};
       let pitchBuffer = '';
       let pitchElements = [];
+      let accidentalValue = null;
       
       // Reuse the same parsing logic as transposeFile but for a single measure
       parser.on('opentag', (node) => {
@@ -486,10 +520,13 @@ class SAXMusicXMLParser {
         if (node.name === 'note') {
           insideNote = true;
           noteData = {};
+          accidentalValue = null;
         } else if (node.name === 'pitch') {
           insidePitch = true;
           pitchBuffer = '';
           pitchElements = [];
+        } else if (node.name === 'accidental') {
+          insideAccidental = true;
         } else if (node.name === 'harmony') {
           insideHarmony = true;
           harmonyData = {};
@@ -569,6 +606,9 @@ class SAXMusicXMLParser {
               
               const transposed = this.transposer.transposeNote(step, alter, octave, semitones);
               
+              // Store transposed alter for accidental handling
+              noteData.transposedAlter = transposed.alter !== undefined ? parseInt(transposed.alter) : 0;
+              
               // Build transposed pitch element
               let transposedPitch = '<pitch>';
               transposedPitch += `<step>${transposed.step}</step>`;
@@ -587,6 +627,27 @@ class SAXMusicXMLParser {
             pitchBuffer = '';
             pitchElements = [];
           }
+        } else if (insideAccidental && tagName === 'accidental' && textContent.trim()) {
+          // Handle accidental transposition based on transposed alter value
+          const originalAccidental = textContent.trim();
+          let transposedAccidental = originalAccidental;
+          
+          if (noteData.transposedAlter !== undefined) {
+            // Map alter values to accidental names
+            if (noteData.transposedAlter === 1) {
+              transposedAccidental = 'sharp';
+            } else if (noteData.transposedAlter === -1) {
+              transposedAccidental = 'flat';
+            } else if (noteData.transposedAlter === 0) {
+              transposedAccidental = 'natural';
+            } else if (noteData.transposedAlter === 2) {
+              transposedAccidental = 'double-sharp';
+            } else if (noteData.transposedAlter === -2) {
+              transposedAccidental = 'double-flat';
+            }
+          }
+          
+          output += transposedAccidental;
         } else if (currentElement && textContent.trim()) {
           // Handle non-pitch transposition
           const originalValue = textContent.trim();
@@ -687,6 +748,9 @@ class SAXMusicXMLParser {
         if (tagName === 'note') {
           insideNote = false;
           noteData = {};
+          accidentalValue = null;
+        } else if (tagName === 'accidental') {
+          insideAccidental = false;
         } else if (tagName === 'harmony') {
           insideHarmony = false;
           harmonyData = {};
