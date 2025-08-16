@@ -366,7 +366,7 @@ class SAXMusicXMLParser {
           for (let measureIndex = 0; measureIndex < part.measures.length; measureIndex++) {
             const measure = part.measures[measureIndex];
             const measureNumber = semitone * part.measures.length + measureIndex + 1;
-            const transposedMeasure = await this.transposeMeasure(measure, semitone);
+            const transposedMeasure = await this._transposeXMLWithSAX(measure, semitone);
             
             // Modify barline based on position
             let modifiedMeasure = transposedMeasure.replace(/number="\d+"/, `number="${measureNumber}"`);
@@ -495,10 +495,6 @@ class SAXMusicXMLParser {
       parser.write(cleanXmlData);
       parser.end();
     });
-  }
-
-  async transposeMeasure(measureXML, semitones) {
-    return this._transposeXMLWithSAX(measureXML, semitones);
   }
 
   updateBarline(measureXML, barlineType) {
