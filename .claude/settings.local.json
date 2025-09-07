@@ -6,7 +6,8 @@
       "Bash(npx webpack:*)",
       "Bash(npm install:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:api.github.com)"
+      "WebFetch(domain:api.github.com)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
