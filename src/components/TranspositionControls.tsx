@@ -11,7 +11,7 @@ export const TranspositionControls: React.FC<TranspositionControlsProps> = ({
   disabled, 
   loading 
 }) => {
-  const [mode, setMode] = useState<'single' | 'all'>('single');
+  const [mode, setMode] = useState<'single' | 'all'>('all');
   const [interval, setInterval] = useState('+5');
 
   const intervalOptions = [
@@ -57,24 +57,24 @@ export const TranspositionControls: React.FC<TranspositionControlsProps> = ({
           <input
             type="radio"
             name="mode"
-            value="single"
-            checked={mode === 'single'}
-            onChange={(e) => setMode(e.target.value as 'single')}
-            disabled={disabled}
-          />
-          <span>Single Interval</span>
-        </label>
-        
-        <label className="radio-option">
-          <input
-            type="radio"
-            name="mode"
             value="all"
             checked={mode === 'all'}
             onChange={(e) => setMode(e.target.value as 'all')}
             disabled={disabled}
           />
           <span>All 12 Keys</span>
+        </label>
+        
+        <label className="radio-option">
+          <input
+            type="radio"
+            name="mode"
+            value="single"
+            checked={mode === 'single'}
+            onChange={(e) => setMode(e.target.value as 'single')}
+            disabled={disabled}
+          />
+          <span>Single Interval</span>
         </label>
       </div>
 
