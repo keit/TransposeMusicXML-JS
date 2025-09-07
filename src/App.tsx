@@ -25,7 +25,7 @@ const App: React.FC = () => {
     setTranspositionInfo('');
   }, []);
 
-  const handleTranspose = useCallback(async (interval: string | null) => {
+  const handleTranspose = useCallback(async (interval: string | null, keyOrder: 'chromatic' | 'fourths' = 'chromatic') => {
     if (!uploadedFile) {
       setError('Please upload a MusicXML file first');
       return;
@@ -44,8 +44,9 @@ const App: React.FC = () => {
 
       if (interval === null) {
         // All 12 keys
-        result = await parser.transposeToAllKeys(uploadedFile.content);
-        info = 'Transposed to all 12 keys';
+        result = await parser.transposeToAllKeys(uploadedFile.content, keyOrder);
+        const orderType = keyOrder === 'fourths' ? 'circle of fourths' : 'chromatic';
+        info = `Transposed to all 12 keys (${orderType} order)`;
       } else {
         // Single interval
         result = await parser.transposeString(uploadedFile.content, interval);

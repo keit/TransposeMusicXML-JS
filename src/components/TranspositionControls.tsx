@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 interface TranspositionControlsProps {
-  onTranspose: (interval: string | null) => void;
+  onTranspose: (interval: string | null, keyOrder?: 'chromatic' | 'fourths') => void;
   disabled?: boolean;
   loading?: boolean;
 }
@@ -13,6 +13,7 @@ export const TranspositionControls: React.FC<TranspositionControlsProps> = ({
 }) => {
   const [mode, setMode] = useState<'single' | 'all'>('all');
   const [interval, setInterval] = useState('+5');
+  const [keyOrder, setKeyOrder] = useState<'chromatic' | 'fourths'>('chromatic');
 
   const intervalOptions = [
     { value: '+11', label: '+11 semitones (Major 7th up)' },
@@ -42,7 +43,7 @@ export const TranspositionControls: React.FC<TranspositionControlsProps> = ({
 
   const handleTranspose = () => {
     if (mode === 'all') {
-      onTranspose(null); // null means all keys
+      onTranspose(null, keyOrder); // null means all keys, with key order preference
     } else {
       onTranspose(interval);
     }
@@ -98,8 +99,43 @@ export const TranspositionControls: React.FC<TranspositionControlsProps> = ({
       )}
 
       {mode === 'all' && (
-        <div className="all-keys-info">
-          <p>This will create a score with the melody transposed to all 12 chromatic keys.</p>
+        <div className="all-keys-options">
+          <div className="key-order-selection">
+            <label htmlFor="key-order">Key Order:</label>
+            <div className="radio-group">
+              <label className="radio-option">
+                <input
+                  type="radio"
+                  name="keyOrder"
+                  value="chromatic"
+                  checked={keyOrder === 'chromatic'}
+                  onChange={(e) => setKeyOrder(e.target.value as 'chromatic')}
+                  disabled={disabled}
+                />
+                <span>Chromatic (C, C#, D, D#, E, F, F#, G, G#, A, A#, B)</span>
+              </label>
+              
+              <label className="radio-option">
+                <input
+                  type="radio"
+                  name="keyOrder"
+                  value="fourths"
+                  checked={keyOrder === 'fourths'}
+                  onChange={(e) => setKeyOrder(e.target.value as 'fourths')}
+                  disabled={disabled}
+                />
+                <span>Circle of Fourths (C, F, B♭, E♭, A♭, D♭, G♭, B, E, A, D, G)</span>
+              </label>
+            </div>
+          </div>
+          
+          <div className="all-keys-info">
+            <p>
+              {keyOrder === 'chromatic' 
+                ? 'Creates a score with the melody transposed to all 12 keys in chromatic order.'
+                : 'Creates a score with the melody transposed to all 12 keys in circle of fourths order (useful for jazz and theory practice).'}
+            </p>
+          </div>
         </div>
       )}
 

@@ -177,8 +177,37 @@
   font-size: 0.95rem;
 }
 
-.all-keys-info {
+.all-keys-options {
   margin-bottom: 1.5rem;
+}
+
+.key-order-selection {
+  margin-bottom: 1rem;
+}
+
+.key-order-selection label[for="key-order"] {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.radio-group .radio-option {
+  margin-bottom: 0;
+}
+
+.radio-group .radio-option span {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.all-keys-info {
   padding: 1rem;
   background-color: #fef3c7;
   border: 1px solid #fbbf24;

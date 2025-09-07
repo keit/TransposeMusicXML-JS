@@ -443,7 +443,7 @@ export class SAXMusicXMLParser {
     }
   }
 
-  async transposeToAllKeys(xmlData: string): Promise<string> {
+  async transposeToAllKeys(xmlData: string, keyOrder: 'chromatic' | 'fourths' = 'chromatic'): Promise<string> {
     if (!this.transposer) {
       throw new Error("Transposer not set");
     }
@@ -467,6 +467,12 @@ export class SAXMusicXMLParser {
       // Copy header information (includes opening score-partwise tag)
       output += parsedStructure.header;
 
+      // Define key orders
+      const chromaticOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]; // C, C#, D, D#, E, F, F#, G, G#, A, A#, B
+      const fourthsOrder = [0, 5, 10, 3, 8, 1, 6, 11, 4, 9, 2, 7];   // C, F, Bb, Eb, Ab, Db, Gb, B, E, A, D, G
+      
+      const keySequence = keyOrder === 'fourths' ? fourthsOrder : chromaticOrder;
+
       // For each part, create 12 transposed versions
       for (
         let partIndex = 0;
@@ -477,7 +483,8 @@ export class SAXMusicXMLParser {
         output += `<part id="${part.id}">`;
 
         // Process all measures for each key (complete melody in each key)
-        for (let semitone = 0; semitone < 12; semitone++) {
+        for (let keyIndex = 0; keyIndex < 12; keyIndex++) {
+          const semitone = keySequence[keyIndex];
           // Add all measures for this key
           for (
             let measureIndex = 0;
@@ -486,7 +493,7 @@ export class SAXMusicXMLParser {
           ) {
             const measure = part.measures[measureIndex];
             const measureNumber =
-              semitone * part.measures.length + measureIndex + 1;
+              keyIndex * part.measures.length + measureIndex + 1;
             const transposedMeasure = await this._transposeXMLWithSAX(
               measure,
               semitone
@@ -498,7 +505,7 @@ export class SAXMusicXMLParser {
               `number="${measureNumber}"`
             );
 
-            if (semitone === 11 && measureIndex === part.measures.length - 1) {
+            if (keyIndex === 11 && measureIndex === part.measures.length - 1) {
               // Last measure of last key - use final barline
               modifiedMeasure = this.updateBarline(modifiedMeasure, "final");
             } else if (measureIndex === part.measures.length - 1) {

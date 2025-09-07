@@ -4,7 +4,7 @@ import 'svg2pdf.js';
 import { OpenSheetMusicDisplay } from 'opensheetmusicdisplay';
 
 interface ExportButtonProps {
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   osmdRef: React.RefObject<OpenSheetMusicDisplay | null>;
   title?: string;
   disabled?: boolean;
