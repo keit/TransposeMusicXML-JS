@@ -320,13 +320,47 @@
   min-height: 400px;
 }
 
-.music-title {
-  margin: 0 0 1rem 0;
+.music-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 1rem;
   background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.music-title {
+  margin: 0;
   color: #374151;
   font-size: 1.1rem;
   font-weight: 500;
+}
+
+.pdf-export-button {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pdf-export-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+}
+
+.pdf-export-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .loading-overlay {
