@@ -1,13 +1,6 @@
 import { SaxesParser, type SaxesTag } from "saxes";
 import { MusicTransposer } from "./MusicTransposer";
 
-interface ParsedStructure {
-  header: string;
-  parts: Array<{
-    id: string;
-    measures: string[];
-  }>;
-}
 
 interface HarmonyData {
   [key: string]: unknown;
@@ -397,7 +390,7 @@ export class SAXMusicXMLParser {
     });
   }
 
-  async transposeString(xmlData: string, interval: string): Promise<string> {
+  async transposeByInterval(xmlData: string, interval: string): Promise<string> {
     if (!this.transposer) {
       throw new Error("Transposer not set");
     }
@@ -443,187 +436,34 @@ export class SAXMusicXMLParser {
     }
   }
 
-  async transposeToAllKeys(xmlData: string, keyOrder: 'chromatic' | 'fourths' = 'chromatic'): Promise<string> {
+
+  // Returns separate MusicXML strings for all 12 keys
+  async transposeToAllKeys(
+    xmlData: string, 
+    keyOrder: 'chromatic' | 'fourths' = 'chromatic'
+  ): Promise<Array<{ key: string; semitones: number; xml: string }>> {
     if (!this.transposer) {
       throw new Error("Transposer not set");
     }
 
     try {
+      // Extract the original key signature from the XML
+      const originalKeyInfo = this._extractOriginalKeySignature(xmlData);
+      
       // Extract XML declaration and DOCTYPE
       const xmlDeclarationMatch = xmlData.match(/^<\?xml[^>]*\?>\s*/);
       const doctypeMatch = xmlData.match(/<!DOCTYPE[^>]*>/);
 
-      let output = "";
+      let headerOutput = "";
       if (xmlDeclarationMatch) {
-        output += xmlDeclarationMatch[0];
+        headerOutput += xmlDeclarationMatch[0];
       }
       if (doctypeMatch) {
-        output += doctypeMatch[0] + "\n";
+        headerOutput += doctypeMatch[0] + "\n";
       }
 
-      // Parse the structure to extract parts
-      const parsedStructure = await this.parseStructure(xmlData);
-
-      // Copy header information (includes opening score-partwise tag)
-      output += parsedStructure.header;
-
-      // Define key orders
-      const chromaticOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]; // C, C#, D, D#, E, F, F#, G, G#, A, A#, B
-      const fourthsOrder = [0, 5, 10, 3, 8, 1, 6, 11, 4, 9, 2, 7];   // C, F, Bb, Eb, Ab, Db, Gb, B, E, A, D, G
-      
-      const keySequence = keyOrder === 'fourths' ? fourthsOrder : chromaticOrder;
-
-      // For each part, create 12 transposed versions
-      for (
-        let partIndex = 0;
-        partIndex < parsedStructure.parts.length;
-        partIndex++
-      ) {
-        const part = parsedStructure.parts[partIndex];
-        output += `<part id="${part.id}">`;
-
-        // Process all measures for each key (complete melody in each key)
-        for (let keyIndex = 0; keyIndex < 12; keyIndex++) {
-          const semitone = keySequence[keyIndex];
-          // Add all measures for this key
-          for (
-            let measureIndex = 0;
-            measureIndex < part.measures.length;
-            measureIndex++
-          ) {
-            const measure = part.measures[measureIndex];
-            const measureNumber =
-              keyIndex * part.measures.length + measureIndex + 1;
-            const transposedMeasure = await this._transposeXMLWithSAX(
-              measure,
-              semitone
-            );
-
-            // Modify barline based on position
-            let modifiedMeasure = transposedMeasure.replace(
-              /number="\d+"/,
-              `number="${measureNumber}"`
-            );
-
-            if (keyIndex === 11 && measureIndex === part.measures.length - 1) {
-              // Last measure of last key - use final barline
-              modifiedMeasure = this.updateBarline(modifiedMeasure, "final");
-            } else if (measureIndex === part.measures.length - 1) {
-              // Last measure of each key - use double barline
-              modifiedMeasure = this.updateBarline(modifiedMeasure, "double");
-            } else {
-              // Regular measures - ensure no final barline
-              modifiedMeasure = this.updateBarline(modifiedMeasure, "none");
-            }
-
-            output += modifiedMeasure;
-          }
-        }
-
-        output += "</part>";
-      }
-
-      output += "</score-partwise>";
-
-      return output;
-    } catch (error) {
-      throw new Error(
-        `Failed to process all keys: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
-    }
-  }
-
-  private async parseStructure(xmlData: string): Promise<ParsedStructure> {
-    // This is a simplified structure parser
-    return new Promise((resolve, reject) => {
-      const parser = new SaxesParser();
-
-      const structure: ParsedStructure = { header: "", parts: [] };
-      let currentPart: { id: string; measures: string[] } | null = null;
-      let currentMeasure = "";
-      let insideHeader = true;
-      let insidePart = false;
-      let insideMeasure = false;
-
-      parser.on("opentag", (node: SaxesTag) => {
-        if (node.name === "part") {
-          insideHeader = false;
-          insidePart = true;
-          currentPart = { id: node.attributes.id as string, measures: [] };
-        } else if (node.name === "measure" && insidePart) {
-          insideMeasure = true;
-          currentMeasure = `<${node.name}`;
-          for (const attr in node.attributes) {
-            currentMeasure += ` ${attr}="${node.attributes[attr]}"`;
-          }
-          currentMeasure += ">";
-          return;
-        }
-
-        if (insideHeader) {
-          let tag = `<${node.name}`;
-          for (const attr in node.attributes) {
-            tag += ` ${attr}="${node.attributes[attr]}"`;
-          }
-          tag += ">";
-          structure.header += tag;
-        } else if (insideMeasure) {
-          let tag = `<${node.name}`;
-          for (const attr in node.attributes) {
-            tag += ` ${attr}="${node.attributes[attr]}"`;
-          }
-          tag += ">";
-          currentMeasure += tag;
-        }
-      });
-
-      parser.on("text", (text: string) => {
-        if (insideHeader) {
-          structure.header += text;
-        } else if (insideMeasure) {
-          currentMeasure += text;
-        }
-      });
-
-      parser.on("closetag", (tag) => {
-        const tagName = tag.name;
-        if (tagName === "part") {
-          insidePart = false;
-          if (currentPart) {
-            structure.parts.push(currentPart);
-          }
-          currentPart = null;
-        } else if (tagName === "measure" && insideMeasure) {
-          insideMeasure = false;
-          currentMeasure += `</${tagName}>`;
-          if (currentPart) {
-            currentPart.measures.push(currentMeasure);
-          }
-          currentMeasure = "";
-          return;
-        }
-
-        if (insideHeader) {
-          structure.header += `</${tagName}>`;
-        } else if (insideMeasure) {
-          currentMeasure += `</${tagName}>`;
-        }
-      });
-
-      parser.on("error", (err: Error) => {
-        reject(new Error(`Structure parsing error: ${err.message}`));
-      });
-
-      parser.on("end", () => {
-        resolve(structure);
-      });
-
-      // Remove XML declaration and DOCTYPE for parsing
+      // Remove XML declaration and DOCTYPE for processing
       let cleanXmlData = xmlData;
-      const xmlDeclarationMatch = xmlData.match(/^<\?xml[^>]*\?>\s*/);
-      const doctypeMatch = xmlData.match(/<!DOCTYPE[^>]*>/);
       if (xmlDeclarationMatch) {
         cleanXmlData = cleanXmlData.replace(xmlDeclarationMatch[0], "");
       }
@@ -632,47 +472,125 @@ export class SAXMusicXMLParser {
       }
       cleanXmlData = cleanXmlData.trim();
 
-      try {
-        parser.write(cleanXmlData).close();
-      } catch (error) {
-        reject(error);
+      // Define key orders
+      const chromaticOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+      const fourthsOrder = [0, 5, 10, 3, 8, 1, 6, 11, 4, 9, 2, 7];
+      
+      const keySequence = keyOrder === 'fourths' ? fourthsOrder : chromaticOrder;
+      const results: Array<{ key: string; semitones: number; xml: string }> = [];
+
+      // Generate separate transposed versions for each key
+      for (let keyIndex = 0; keyIndex < 12; keyIndex++) {
+        const semitones = keySequence[keyIndex];
+        
+        // Calculate the transposed key signature
+        const transposedKeyName = this._calculateTransposedKeyName(originalKeyInfo, semitones);
+        
+        // Transpose for this specific key
+        const transposedXML = await this._transposeXMLWithSAX(cleanXmlData, semitones);
+        const fullXML = headerOutput + transposedXML;
+        
+        results.push({
+          key: transposedKeyName,
+          semitones: semitones,
+          xml: fullXML
+        });
       }
-    });
+
+      return results;
+    } catch (error) {
+      throw new Error(
+        `Failed to transpose to separate keys: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
   }
 
-  private updateBarline(
-    measureXML: string,
-    barlineType: "final" | "double" | "none"
-  ): string {
-    if (barlineType === "final") {
-      // Replace any existing barline with final barline or add one
-      if (measureXML.includes("<barline")) {
-        return measureXML.replace(
-          /<barline[^>]*>[\s\S]*?<\/barline>/g,
-          '<barline location="right"><bar-style>light-heavy</bar-style></barline>'
-        );
-      } else {
-        return measureXML.replace(
-          "</measure>",
-          '<barline location="right"><bar-style>light-heavy</bar-style></barline></measure>'
-        );
-      }
-    } else if (barlineType === "double") {
-      // Replace any existing barline with double barline or add one
-      if (measureXML.includes("<barline")) {
-        return measureXML.replace(
-          /<barline[^>]*>[\s\S]*?<\/barline>/g,
-          '<barline location="right"><bar-style>light-light</bar-style></barline>'
-        );
-      } else {
-        return measureXML.replace(
-          "</measure>",
-          '<barline location="right"><bar-style>light-light</bar-style></barline></measure>'
-        );
-      }
-    } else {
-      // Remove final barlines
-      return measureXML.replace(/<barline[^>]*>[\s\S]*?<\/barline>/g, "");
+  private _extractOriginalKeySignature(xmlData: string): { fifths: number; mode: string } {
+    // Extract the first key signature from the XML
+    const keyMatch = xmlData.match(/<key[^>]*>(.*?)<\/key>/s);
+    if (!keyMatch) {
+      return { fifths: 0, mode: 'major' }; // Default to C major
     }
+    
+    const keyContent = keyMatch[1];
+    const fifthsMatch = keyContent.match(/<fifths>([^<]+)<\/fifths>/);
+    const modeMatch = keyContent.match(/<mode>([^<]+)<\/mode>/);
+    
+    const fifths = fifthsMatch ? parseInt(fifthsMatch[1]) : 0;
+    const mode = modeMatch ? modeMatch[1] : 'major';
+    
+    return { fifths, mode };
+  }
+
+  private _calculateTransposedKeyName(originalKey: { fifths: number; mode: string }, semitones: number): string {
+    if (!this.transposer) {
+      return 'C';
+    }
+
+    // Create a key element compatible with the transposer
+    const keyElement: { fifths: string } = { fifths: originalKey.fifths.toString() };
+    
+    // Use the existing transposeKeySignature method
+    const transposedKey = this.transposer.transposeKeySignature(keyElement, semitones);
+    const transposedFifths = parseInt(transposedKey.fifths as string);
+    
+    // Convert fifths + mode to key name
+    return this._fifthsToKeyName(transposedFifths, originalKey.mode);
+  }
+
+  private _fifthsToKeyName(fifths: number, mode: string): string {
+    // Circle of fifths mapping based on MusicXML standard
+    // Positive fifths = sharps, Negative fifths = flats
+    
+    const majorKeysByFifths: { [key: number]: string } = {
+      // Sharp keys (positive fifths)
+      0: 'C',    // 0 sharps
+      1: 'G',    // 1 sharp
+      2: 'D',    // 2 sharps
+      3: 'A',    // 3 sharps
+      4: 'E',    // 4 sharps
+      5: 'B',    // 5 sharps
+      6: 'F♯',   // 6 sharps
+      7: 'C♯',   // 7 sharps
+      // Flat keys (negative fifths)
+      [-1]: 'F',    // 1 flat
+      [-2]: 'B♭',   // 2 flats
+      [-3]: 'E♭',   // 3 flats
+      [-4]: 'A♭',   // 4 flats
+      [-5]: 'D♭',   // 5 flats
+      [-6]: 'G♭',   // 6 flats
+      [-7]: 'C♭'    // 7 flats
+    };
+
+    const minorKeysByFifths: { [key: number]: string } = {
+      // Sharp keys (positive fifths) - relative minors
+      0: 'A',    // 0 sharps (relative to C major)
+      1: 'E',    // 1 sharp (relative to G major)
+      2: 'B',    // 2 sharps (relative to D major)
+      3: 'F♯',   // 3 sharps (relative to A major)
+      4: 'C♯',   // 4 sharps (relative to E major)
+      5: 'G♯',   // 5 sharps (relative to B major)
+      6: 'D♯',   // 6 sharps (relative to F♯ major)
+      7: 'A♯',   // 7 sharps (relative to C♯ major)
+      // Flat keys (negative fifths) - relative minors
+      [-1]: 'D',    // 1 flat (relative to F major)
+      [-2]: 'G',    // 2 flats (relative to B♭ major)
+      [-3]: 'C',    // 3 flats (relative to E♭ major)
+      [-4]: 'F',    // 4 flats (relative to A♭ major)
+      [-5]: 'B♭',   // 5 flats (relative to D♭ major)
+      [-6]: 'E♭',   // 6 flats (relative to G♭ major)
+      [-7]: 'A♭'    // 7 flats (relative to C♭ major)
+    };
+    
+    // Clamp fifths to valid range (-7 to +7)
+    const clampedFifths = Math.max(-7, Math.min(7, fifths));
+    
+    const keys = mode.toLowerCase() === 'minor' ? minorKeysByFifths : majorKeysByFifths;
+    const keyName = keys[clampedFifths] || 'C'; // Default to C if not found
+    const suffix = mode.toLowerCase() === 'minor' ? ' minor' : ' major';
+    
+    return keyName + suffix;
   }
 }
