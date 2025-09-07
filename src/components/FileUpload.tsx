@@ -55,9 +55,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload, disabled }
   }, []);
 
   return (
-    <div className="file-upload">
+    <div className="w-full">
       <div
-        className={`upload-zone ${disabled ? 'disabled' : ''}`}
+        className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 ${
+          disabled 
+            ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 cursor-not-allowed' 
+            : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer'
+        }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
@@ -66,16 +70,16 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload, disabled }
           accept=".xml,.musicxml"
           onChange={handleFileChange}
           disabled={disabled}
-          className="file-input"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
           id="file-input"
         />
-        <label htmlFor="file-input" className="upload-label">
-          <div className="upload-content">
-            <div className="upload-icon">📄</div>
-            <div className="upload-text">
-              <strong>Click to upload</strong> or drag and drop
+        <label htmlFor="file-input" className={`block ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+          <div className="flex flex-col items-center justify-center space-y-3">
+            <div className="text-4xl">📄</div>
+            <div className="text-gray-700 dark:text-gray-300">
+              <span className="font-semibold">Click to upload</span> or drag and drop
             </div>
-            <div className="upload-subtext">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
               MusicXML files (.xml, .musicxml)
             </div>
           </div>

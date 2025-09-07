@@ -50,11 +50,11 @@ export const TranspositionControls: React.FC<TranspositionControlsProps> = ({
   };
 
   return (
-    <div className="transposition-controls">
-      <h3>Transposition Options</h3>
+    <div className="space-y-6">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Transposition Options</h3>
       
-      <div className="mode-selection">
-        <label className="radio-option">
+      <div className="space-y-3">
+        <div className="flex items-center space-x-3">
           <input
             type="radio"
             name="mode"
@@ -62,11 +62,15 @@ export const TranspositionControls: React.FC<TranspositionControlsProps> = ({
             checked={mode === 'all'}
             onChange={(e) => setMode(e.target.value as 'all')}
             disabled={disabled}
+            className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+            id="mode-all"
           />
-          <span>All 12 Keys</span>
-        </label>
+          <label htmlFor="mode-all" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            All 12 Keys
+          </label>
+        </div>
         
-        <label className="radio-option">
+        <div className="flex items-center space-x-3">
           <input
             type="radio"
             name="mode"
@@ -74,20 +78,26 @@ export const TranspositionControls: React.FC<TranspositionControlsProps> = ({
             checked={mode === 'single'}
             onChange={(e) => setMode(e.target.value as 'single')}
             disabled={disabled}
+            className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+            id="mode-single"
           />
-          <span>Single Interval</span>
-        </label>
+          <label htmlFor="mode-single" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Single Interval
+          </label>
+        </div>
       </div>
 
       {mode === 'single' && (
-        <div className="interval-selection">
-          <label htmlFor="interval-select">Select Interval:</label>
+        <div className="space-y-3">
+          <label htmlFor="interval-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Select Interval:
+          </label>
           <select
             id="interval-select"
             value={interval}
             onChange={(e) => setInterval(e.target.value)}
             disabled={disabled}
-            className="interval-select"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           >
             {intervalOptions.map(option => (
               <option key={option.value} value={option.value}>
@@ -99,11 +109,11 @@ export const TranspositionControls: React.FC<TranspositionControlsProps> = ({
       )}
 
       {mode === 'all' && (
-        <div className="all-keys-options">
-          <div className="key-order-selection">
-            <label htmlFor="key-order">Key Order:</label>
-            <div className="radio-group">
-              <label className="radio-option">
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Key Order:</label>
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3">
                 <input
                   type="radio"
                   name="keyOrder"
@@ -111,11 +121,18 @@ export const TranspositionControls: React.FC<TranspositionControlsProps> = ({
                   checked={keyOrder === 'chromatic'}
                   onChange={(e) => setKeyOrder(e.target.value as 'chromatic')}
                   disabled={disabled}
+                  className="w-4 h-4 mt-0.5 text-indigo-600 border-gray-300 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+                  id="key-order-chromatic"
                 />
-                <span>Chromatic (C, C#, D, D#, E, F, F#, G, G#, A, A#, B)</span>
-              </label>
+                <label htmlFor="key-order-chromatic" className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="font-medium">Chromatic</span><br />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    (C, C#, D, D#, E, F, F#, G, G#, A, A#, B)
+                  </span>
+                </label>
+              </div>
               
-              <label className="radio-option">
+              <div className="flex items-start space-x-3">
                 <input
                   type="radio"
                   name="keyOrder"
@@ -123,14 +140,21 @@ export const TranspositionControls: React.FC<TranspositionControlsProps> = ({
                   checked={keyOrder === 'fourths'}
                   onChange={(e) => setKeyOrder(e.target.value as 'fourths')}
                   disabled={disabled}
+                  className="w-4 h-4 mt-0.5 text-indigo-600 border-gray-300 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+                  id="key-order-fourths"
                 />
-                <span>Circle of Fourths (C, F, B♭, E♭, A♭, D♭, G♭, B, E, A, D, G)</span>
-              </label>
+                <label htmlFor="key-order-fourths" className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="font-medium">Circle of Fourths</span><br />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    (C, F, B♭, E♭, A♭, D♭, G♭, B, E, A, D, G)
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
           
-          <div className="all-keys-info">
-            <p>
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
               {keyOrder === 'chromatic' 
                 ? 'Creates a score with the melody transposed to all 12 keys in chromatic order.'
                 : 'Creates a score with the melody transposed to all 12 keys in circle of fourths order (useful for jazz and theory practice).'}
@@ -142,9 +166,16 @@ export const TranspositionControls: React.FC<TranspositionControlsProps> = ({
       <button
         onClick={handleTranspose}
         disabled={disabled || loading}
-        className="transpose-button"
+        className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
       >
-        {loading ? 'Transposing...' : 'Transpose'}
+        {loading ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            Transposing...
+          </>
+        ) : (
+          'Transpose'
+        )}
       </button>
     </div>
   );

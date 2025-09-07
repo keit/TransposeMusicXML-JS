@@ -113,20 +113,20 @@ const App: React.FC = () => {
   }, [transposedXML, uploadedFile]);
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>🎼 MusicXML Transposer</h1>
-        <p>Upload, transpose, and view MusicXML files in your browser</p>
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
+      <header className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-8 text-center shadow-lg">
+        <h1 className="text-4xl font-bold mb-2">🎼 MusicXML Transposer</h1>
+        <p className="text-lg opacity-90">Upload, transpose, and view MusicXML files in your browser</p>
       </header>
 
-      <main className="app-main">
-        <div className="controls-section">
-          <div className="upload-section">
-            <h2>1. Upload MusicXML File</h2>
+      <main className="flex-1 max-w-6xl mx-auto p-8 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">1. Upload MusicXML File</h2>
             <FileUpload onFileUpload={handleFileUpload} disabled={loading} />
             {uploadedFile && (
-              <div className="file-info">
-                <p>
+              <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+                <p className="text-green-800 dark:text-green-200">
                   ✅ <strong>{uploadedFile.file.name}</strong> (
                   {(uploadedFile.file.size / 1024).toFixed(1)} KB)
                 </p>
@@ -134,8 +134,8 @@ const App: React.FC = () => {
             )}
           </div>
 
-          <div className="transpose-section">
-            <h2>2. Choose Transposition</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">2. Choose Transposition</h2>
             <TranspositionControls
               onTranspose={handleTranspose}
               disabled={!uploadedFile || loading}
@@ -145,25 +145,25 @@ const App: React.FC = () => {
         </div>
 
         {error && (
-          <div className="error-section">
-            <h3>❌ Error</h3>
-            <p>{error}</p>
+          <div className="mb-8 p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl">
+            <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">❌ Error</h3>
+            <p className="text-red-700 dark:text-red-300">{error}</p>
           </div>
         )}
 
-        <div className="result-section">
-          <h2>3. Result</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">3. Result</h2>
 
           {(transposedXML || transposedKeys.length > 0) && (
-            <div className="result-header">
-              <div className="result-info">
-                <p>
-                  <strong>{transpositionInfo}</strong>
+            <div className="mb-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                <p className="font-semibold text-green-800 dark:text-green-200">
+                  {transpositionInfo}
                 </p>
                 {transposedXML && (
                   <button
                     onClick={downloadTransposed}
-                    className="download-button"
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2"
                   >
                     📥 Download Transposed XML
                   </button>
@@ -172,9 +172,9 @@ const App: React.FC = () => {
             </div>
           )}
 
-          <div className="display-sections">
+          <div className="space-y-8">
             {uploadedFile && (
-              <div className="display-section">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                 <MusicDisplay
                   musicXML={uploadedFile.content}
                   title={"Original"}
@@ -184,7 +184,7 @@ const App: React.FC = () => {
 
             {/* Single Key Transposition Display */}
             {transposedXML && (
-              <div className="display-section">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                 <MusicDisplay
                   musicXML={transposedXML}
                   title={`${transpositionInfo}`}
@@ -195,7 +195,7 @@ const App: React.FC = () => {
             {/* All 12 Keys Display */}
             {transposedKeys.length > 0 &&
               transposedKeys.map((keyInfo, index) => (
-                <div key={index} className="display-section">
+                <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                   <MusicDisplay
                     musicXML={keyInfo.xml}
                     title={`In the key of ${keyInfo.key}`}
@@ -206,7 +206,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      <footer className="app-footer">
+      <footer className="bg-gray-800 text-gray-300 text-center p-4 text-sm">
         <p>
           Built with React, TypeScript, OpenSheetMusicDisplay, and SAX parser
         </p>
