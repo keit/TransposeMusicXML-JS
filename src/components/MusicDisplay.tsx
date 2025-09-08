@@ -6,12 +6,9 @@ import {
   forwardRef,
 } from "react";
 import { OpenSheetMusicDisplay, Note } from "opensheetmusicdisplay";
-import { ExportButton } from "./ExportButton";
 
 interface MusicDisplayProps {
   musicXML: string | null;
-  title?: string;
-  showPdfExport?: boolean;
   enableCursor?: boolean;
 }
 
@@ -24,19 +21,17 @@ export interface MusicDisplayRef {
   previousMeasure: () => void;
   resetCursor: () => void;
   getCursorNotes: () => Note[] | null;
+  getOSMD: () => OpenSheetMusicDisplay | null;
 }
 
 export const MusicDisplay = forwardRef<MusicDisplayRef, MusicDisplayProps>(
-  ({ musicXML, title, showPdfExport = true, enableCursor = false }, ref) => {
+  ({ musicXML, enableCursor = false }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [cursorVisible, setCursorVisible] = useState(false);
 
-    const handleExportError = (errorMessage: string) => {
-      setError(errorMessage);
-    };
 
     // Expose cursor methods to parent components
     useImperativeHandle(
@@ -117,6 +112,9 @@ export const MusicDisplay = forwardRef<MusicDisplayRef, MusicDisplayProps>(
             }
           }
           return null;
+        },
+        getOSMD: () => {
+          return osmdRef.current;
         },
       }),
       [enableCursor, cursorVisible]
@@ -200,20 +198,6 @@ export const MusicDisplay = forwardRef<MusicDisplayRef, MusicDisplayProps>(
 
     return (
       <div className="music-display">
-        {title && (
-          <div className="music-header">
-            <h3 className="music-title">{title}</h3>
-            {showPdfExport && !loading && !error && (
-              <ExportButton
-                containerRef={containerRef}
-                osmdRef={osmdRef}
-                title={title}
-                disabled={loading}
-                onError={handleExportError}
-              />
-            )}
-          </div>
-        )}
 
         {loading && (
           <div className="loading-overlay">

@@ -1,10 +1,13 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { FileUpload } from "./components/FileUpload";
 import { TranspositionControls } from "./components/TranspositionControls";
 import { MusicDisplay } from "./components/MusicDisplay";
 import { PianoPlayer } from "./components/PianoPlayer";
+import { PlaybackControls } from "./components/PlaybackControls";
+import { MusicDisplayContainer } from "./components/MusicDisplayContainer";
 import { MusicTransposer } from "./lib/MusicTransposer";
 import { SAXMusicXMLParser } from "./lib/SAXMusicXMLParser";
+import { MusicPlaybackService } from "./services/MusicPlaybackService";
 import "./App.css";
 
 interface UploadedFile {
@@ -25,6 +28,27 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transpositionInfo, setTranspositionInfo] = useState<string>("");
+  
+  // Playback settings state
+  const [playbackBpm, setPlaybackBpm] = useState(120);
+  const [playbackInstrument, setPlaybackInstrument] = useState<'concert' | 'bb' | 'eb'>('concert');
+  const [playbackSwing, setPlaybackSwing] = useState(false);
+  const [playingKey, setPlayingKey] = useState<string | null>(null);
+  
+  // Playback service
+  const playbackServiceRef = useRef<MusicPlaybackService | null>(null);
+  
+  // Initialize playback service
+  useEffect(() => {
+    playbackServiceRef.current = new MusicPlaybackService();
+    
+    return () => {
+      // Cleanup on unmount
+      if (playbackServiceRef.current) {
+        playbackServiceRef.current.stop();
+      }
+    };
+  }, []);
 
   const handleFileUpload = useCallback((file: File, content: string) => {
     setUploadedFile({ file, content });
@@ -113,6 +137,95 @@ const App: React.FC = () => {
     }
   }, [transposedXML, uploadedFile]);
 
+  // Playback handlers
+  const handlePlayKey = useCallback(async (keyInfo: TransposedKeyInfo) => {
+    if (!playbackServiceRef.current) return;
+    
+    if (playingKey === keyInfo.key) {
+      // Stop playing
+      playbackServiceRef.current.stop();
+      setPlayingKey(null);
+    } else {
+      try {
+        // Stop any current playback
+        if (playingKey) {
+          playbackServiceRef.current.stop();
+        }
+        
+        // Start playing this key
+        setPlayingKey(keyInfo.key);
+        
+        // Parse and prepare the music
+        await playbackServiceRef.current.parseAndPrepare(keyInfo.xml);
+        
+        // Play with current settings
+        await playbackServiceRef.current.play({
+          bpm: playbackBpm,
+          transposingInstrument: playbackInstrument,
+          swing: playbackSwing
+        });
+        
+        // Monitor playback state
+        const checkPlayback = () => {
+          if (playbackServiceRef.current && !playbackServiceRef.current.getIsPlaying()) {
+            setPlayingKey(null);
+          } else {
+            setTimeout(checkPlayback, 500);
+          }
+        };
+        checkPlayback();
+        
+      } catch (error) {
+        console.error('Playback error:', error);
+        setError(`Playback failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setPlayingKey(null);
+      }
+    }
+  }, [playingKey, playbackBpm, playbackInstrument, playbackSwing]);
+
+  const handlePlaySingle = useCallback(async () => {
+    if (!playbackServiceRef.current || !transposedXML) return;
+    
+    if (playingKey === 'single') {
+      playbackServiceRef.current.stop();
+      setPlayingKey(null);
+    } else {
+      try {
+        // Stop any current playback
+        if (playingKey) {
+          playbackServiceRef.current.stop();
+        }
+        
+        setPlayingKey('single');
+        
+        // Parse and prepare the music
+        await playbackServiceRef.current.parseAndPrepare(transposedXML);
+        
+        // Play with current settings
+        await playbackServiceRef.current.play({
+          bpm: playbackBpm,
+          transposingInstrument: playbackInstrument,
+          swing: playbackSwing
+        });
+        
+        // Monitor playback state
+        const checkPlayback = () => {
+          if (playbackServiceRef.current && !playbackServiceRef.current.getIsPlaying()) {
+            setPlayingKey(null);
+          } else {
+            setTimeout(checkPlayback, 500);
+          }
+        };
+        checkPlayback();
+        
+      } catch (error) {
+        console.error('Playback error:', error);
+        setError(`Playback failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setPlayingKey(null);
+      }
+    }
+  }, [playingKey, playbackBpm, playbackInstrument, playbackSwing, transposedXML]);
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
       <header className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-8 text-center shadow-lg">
@@ -153,6 +266,17 @@ const App: React.FC = () => {
           </div>
         </div>
 
+        {/* Playback Controls */}
+        {(transposedXML || transposedKeys.length > 0) && (
+          <div className="mb-8">
+            <PlaybackControls
+              onBpmChange={setPlaybackBpm}
+              onInstrumentChange={setPlaybackInstrument}
+              onSwingChange={setPlaybackSwing}
+            />
+          </div>
+        )}
+
         {error && (
           <div className="mb-8 p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl">
             <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">❌ Error</h3>
@@ -184,32 +308,37 @@ const App: React.FC = () => {
           <div className="space-y-8">
             {uploadedFile && (
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <div className="p-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    Original
+                  </h3>
+                </div>
                 <MusicDisplay
                   musicXML={uploadedFile.content}
-                  title={"Original"}
                 />
               </div>
             )}
 
             {/* Single Key Transposition Display */}
             {transposedXML && (
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                <MusicDisplay
-                  musicXML={transposedXML}
-                  title={`${transpositionInfo}`}
-                />
-              </div>
+              <MusicDisplayContainer
+                musicXML={transposedXML}
+                title={transpositionInfo}
+                onPlay={handlePlaySingle}
+                isPlaying={playingKey === 'single'}
+              />
             )}
 
             {/* All 12 Keys Display */}
             {transposedKeys.length > 0 &&
               transposedKeys.map((keyInfo, index) => (
-                <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                  <MusicDisplay
-                    musicXML={keyInfo.xml}
-                    title={`In the key of ${keyInfo.key}`}
-                  />
-                </div>
+                <MusicDisplayContainer
+                  key={index}
+                  musicXML={keyInfo.xml}
+                  title={`In the key of ${keyInfo.key}`}
+                  onPlay={() => handlePlayKey(keyInfo)}
+                  isPlaying={playingKey === keyInfo.key}
+                />
               ))}
           </div>
         </div>
