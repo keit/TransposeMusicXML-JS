@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { FileUpload } from "./components/FileUpload";
 import { TranspositionControls } from "./components/TranspositionControls";
 import { MusicDisplay } from "./components/MusicDisplay";
+import { PianoPlayer } from "./components/PianoPlayer";
 import { MusicTransposer } from "./lib/MusicTransposer";
 import { SAXMusicXMLParser } from "./lib/SAXMusicXMLParser";
 import "./App.css";
@@ -141,6 +142,14 @@ const App: React.FC = () => {
               disabled={!uploadedFile || loading}
               loading={loading}
             />
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">🎹 Piano Test</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">Test the piano playback feature with sample melodies:</p>
+            <PianoPlayer />
           </div>
         </div>
 
