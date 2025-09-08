@@ -33,6 +33,9 @@ export class MusicXMLPlaybackParser {
       this.currentTempo = { bpm: 120, beatNote: 4 };
       this.currentTimeSignature = { numerator: 4, denominator: 4, divisions: 1 };
       
+      // Tie tracking
+      const pendingTies: Map<string, PlayableNote> = new Map(); // pitch -> note
+      
       // Parsing state
       const elementStack: string[] = [];
       let currentElement: string | null = null;
@@ -53,6 +56,7 @@ export class MusicXMLPlaybackParser {
         duration?: number;
         velocity?: number;
         isRest?: boolean;
+        tieType?: 'start' | 'stop';
       } = {};
 
       parser.on("opentag", (node: SaxesTag) => {
@@ -72,6 +76,12 @@ export class MusicXMLPlaybackParser {
           insideAttributes = true;
         } else if (node.name === "time") {
           insideTime = true;
+        } else if (node.name === "tie") {
+          // Handle tie element with type attribute
+          const tieType = node.attributes.type;
+          if (tieType === "start" || tieType === "stop") {
+            noteData.tieType = tieType as 'start' | 'stop';
+          }
         }
         
         // Set current element for text capture
@@ -130,19 +140,58 @@ export class MusicXMLPlaybackParser {
         // Process completed musical elements
         if (tagName === "note" && insideNote) {
           if (!noteData.isRest && noteData.step && noteData.octave !== undefined) {
-            // Convert to playable note
             const pitch = this.buildPitchString(noteData.step, noteData.alter || 0, noteData.octave);
             const duration = this.convertDurationToSeconds(noteData.duration || 0);
             
-            notes.push({
-              pitch,
-              startTime: this.currentTime,
-              duration,
-              velocity: noteData.velocity || 64
-            });
+            if (noteData.tieType === 'start') {
+              // Start of a tie - create note and store for potential extension
+              const playableNote: PlayableNote = {
+                pitch,
+                startTime: this.currentTime,
+                duration,
+                velocity: noteData.velocity || 64
+              };
+              
+              notes.push(playableNote);
+              pendingTies.set(pitch, playableNote);
+              
+            } else if (noteData.tieType === 'stop') {
+              // End of a tie - extend the previous note's total duration
+              const tiedNote = pendingTies.get(pitch);
+              if (tiedNote) {
+                // Add this note's duration to the original tied note
+                tiedNote.duration += duration;
+                pendingTies.delete(pitch);
+              } else {
+                // Tie stop without start - treat as normal note
+                console.warn(`Tie stop found without matching start for pitch ${pitch}`);
+                notes.push({
+                  pitch,
+                  startTime: this.currentTime,
+                  duration,
+                  velocity: noteData.velocity || 64
+                });
+              }
+              
+            } else {
+              // Check if this note continues an existing tie (no explicit tie type but same pitch)
+              const existingTie = pendingTies.get(pitch);
+              if (existingTie) {
+                // This note continues the tie - add its duration
+                existingTie.duration += duration;
+              } else {
+                // No tie - normal note
+                notes.push({
+                  pitch,
+                  startTime: this.currentTime,
+                  duration,
+                  velocity: noteData.velocity || 64
+                });
+              }
+            }
           }
           
-          // Advance time by note duration
+          // Advance time by note duration (regardless of tie status)
           if (noteData.duration) {
             this.currentTime += this.convertDurationToSeconds(noteData.duration);
           }
