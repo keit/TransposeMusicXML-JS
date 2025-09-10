@@ -2,7 +2,6 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { FileUpload } from "./components/FileUpload";
 import { TranspositionControls } from "./components/TranspositionControls";
 import { MusicDisplay } from "./components/MusicDisplay";
-import { PianoPlayer } from "./components/PianoPlayer";
 import { PlaybackControls } from "./components/PlaybackControls";
 import { MusicDisplayContainer } from "./components/MusicDisplayContainer";
 import { MusicTransposer } from "./lib/MusicTransposer";
@@ -28,20 +27,22 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transpositionInfo, setTranspositionInfo] = useState<string>("");
-  
+
   // Playback settings state
   const [playbackBpm, setPlaybackBpm] = useState(120);
-  const [playbackInstrument, setPlaybackInstrument] = useState<'concert' | 'bb' | 'eb'>('concert');
+  const [playbackInstrument, setPlaybackInstrument] = useState<
+    "concert" | "bb" | "eb"
+  >("concert");
   const [playbackSwing, setPlaybackSwing] = useState(false);
   const [playingKey, setPlayingKey] = useState<string | null>(null);
-  
+
   // Playback service
   const playbackServiceRef = useRef<MusicPlaybackService | null>(null);
-  
+
   // Initialize playback service
   useEffect(() => {
     playbackServiceRef.current = new MusicPlaybackService();
-    
+
     return () => {
       // Cleanup on unmount
       if (playbackServiceRef.current) {
@@ -138,55 +139,64 @@ const App: React.FC = () => {
   }, [transposedXML, uploadedFile]);
 
   // Playback handlers
-  const handlePlayKey = useCallback(async (keyInfo: TransposedKeyInfo) => {
-    if (!playbackServiceRef.current) return;
-    
-    if (playingKey === keyInfo.key) {
-      // Stop playing
-      playbackServiceRef.current.stop();
-      setPlayingKey(null);
-    } else {
-      try {
-        // Stop any current playback
-        if (playingKey) {
-          playbackServiceRef.current.stop();
-        }
-        
-        // Start playing this key
-        setPlayingKey(keyInfo.key);
-        
-        // Parse and prepare the music
-        await playbackServiceRef.current.parseAndPrepare(keyInfo.xml);
-        
-        // Play with current settings
-        await playbackServiceRef.current.play({
-          bpm: playbackBpm,
-          transposingInstrument: playbackInstrument,
-          swing: playbackSwing
-        });
-        
-        // Monitor playback state
-        const checkPlayback = () => {
-          if (playbackServiceRef.current && !playbackServiceRef.current.getIsPlaying()) {
-            setPlayingKey(null);
-          } else {
-            setTimeout(checkPlayback, 500);
-          }
-        };
-        checkPlayback();
-        
-      } catch (error) {
-        console.error('Playback error:', error);
-        setError(`Playback failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  const handlePlayKey = useCallback(
+    async (keyInfo: TransposedKeyInfo) => {
+      if (!playbackServiceRef.current) return;
+
+      if (playingKey === keyInfo.key) {
+        // Stop playing
+        playbackServiceRef.current.stop();
         setPlayingKey(null);
+      } else {
+        try {
+          // Stop any current playback
+          if (playingKey) {
+            playbackServiceRef.current.stop();
+          }
+
+          // Start playing this key
+          setPlayingKey(keyInfo.key);
+
+          // Parse and prepare the music
+          await playbackServiceRef.current.parseAndPrepare(keyInfo.xml);
+
+          // Play with current settings
+          await playbackServiceRef.current.play({
+            bpm: playbackBpm,
+            transposingInstrument: playbackInstrument,
+            swing: playbackSwing,
+          });
+
+          // Monitor playback state
+          const checkPlayback = () => {
+            if (
+              playbackServiceRef.current &&
+              !playbackServiceRef.current.getIsPlaying()
+            ) {
+              setPlayingKey(null);
+            } else {
+              setTimeout(checkPlayback, 500);
+            }
+          };
+          checkPlayback();
+        } catch (error) {
+          console.error("Playback error:", error);
+          setError(
+            `Playback failed: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`
+          );
+          setPlayingKey(null);
+        }
       }
-    }
-  }, [playingKey, playbackBpm, playbackInstrument, playbackSwing]);
+    },
+    [playingKey, playbackBpm, playbackInstrument, playbackSwing]
+  );
 
   const handlePlaySingle = useCallback(async () => {
     if (!playbackServiceRef.current || !transposedXML) return;
-    
-    if (playingKey === 'single') {
+
+    if (playingKey === "single") {
       playbackServiceRef.current.stop();
       setPlayingKey(null);
     } else {
@@ -195,48 +205,64 @@ const App: React.FC = () => {
         if (playingKey) {
           playbackServiceRef.current.stop();
         }
-        
-        setPlayingKey('single');
-        
+
+        setPlayingKey("single");
+
         // Parse and prepare the music
         await playbackServiceRef.current.parseAndPrepare(transposedXML);
-        
+
         // Play with current settings
         await playbackServiceRef.current.play({
           bpm: playbackBpm,
           transposingInstrument: playbackInstrument,
-          swing: playbackSwing
+          swing: playbackSwing,
         });
-        
+
         // Monitor playback state
         const checkPlayback = () => {
-          if (playbackServiceRef.current && !playbackServiceRef.current.getIsPlaying()) {
+          if (
+            playbackServiceRef.current &&
+            !playbackServiceRef.current.getIsPlaying()
+          ) {
             setPlayingKey(null);
           } else {
             setTimeout(checkPlayback, 500);
           }
         };
         checkPlayback();
-        
       } catch (error) {
-        console.error('Playback error:', error);
-        setError(`Playback failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.error("Playback error:", error);
+        setError(
+          `Playback failed: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
         setPlayingKey(null);
       }
     }
-  }, [playingKey, playbackBpm, playbackInstrument, playbackSwing, transposedXML]);
+  }, [
+    playingKey,
+    playbackBpm,
+    playbackInstrument,
+    playbackSwing,
+    transposedXML,
+  ]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
       <header className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-8 text-center shadow-lg">
         <h1 className="text-4xl font-bold mb-2">🎼 MusicXML Transposer</h1>
-        <p className="text-lg opacity-90">Upload, transpose, and view MusicXML files in your browser</p>
+        <p className="text-lg opacity-90">
+          Upload, transpose, and view MusicXML files in your browser
+        </p>
       </header>
 
       <main className="flex-1 max-w-6xl mx-auto p-8 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">1. Upload MusicXML File</h2>
+            <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">
+              1. Upload MusicXML File
+            </h2>
             <FileUpload onFileUpload={handleFileUpload} disabled={loading} />
             {uploadedFile && (
               <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
@@ -249,20 +275,14 @@ const App: React.FC = () => {
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">2. Choose Transposition</h2>
+            <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">
+              2. Choose Transposition
+            </h2>
             <TranspositionControls
               onTranspose={handleTranspose}
               disabled={!uploadedFile || loading}
               loading={loading}
             />
-          </div>
-        </div>
-
-        <div className="mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">🎹 Piano Test</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">Test the piano playback feature with sample melodies:</p>
-            <PianoPlayer />
           </div>
         </div>
 
@@ -279,13 +299,17 @@ const App: React.FC = () => {
 
         {error && (
           <div className="mb-8 p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl">
-            <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">❌ Error</h3>
+            <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
+              ❌ Error
+            </h3>
             <p className="text-red-700 dark:text-red-300">{error}</p>
           </div>
         )}
 
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">3. Result</h2>
+          <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-gray-100">
+            3. Result
+          </h2>
 
           {(transposedXML || transposedKeys.length > 0) && (
             <div className="mb-8">
@@ -313,9 +337,7 @@ const App: React.FC = () => {
                     Original
                   </h3>
                 </div>
-                <MusicDisplay
-                  musicXML={uploadedFile.content}
-                />
+                <MusicDisplay musicXML={uploadedFile.content} />
               </div>
             )}
 
@@ -325,7 +347,7 @@ const App: React.FC = () => {
                 musicXML={transposedXML}
                 title={transpositionInfo}
                 onPlay={handlePlaySingle}
-                isPlaying={playingKey === 'single'}
+                isPlaying={playingKey === "single"}
               />
             )}
 
